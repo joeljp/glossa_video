@@ -73,9 +73,6 @@ border-radius:25px;
       });
     });
 
-    var supplied = "m4v";
-    //var supplied = "rtmpv";
-
     $(function() {
       $( ".method" )
         .button()
@@ -91,6 +88,10 @@ border-radius:25px;
     $(document).ready(function(){
       mov = mediaObj.mov.movie_loc;
       path = mediaObj.mov.path;
+      supplied = mediaObj.mov.supplied;
+//      supplied = "m4v";
+    //var supplied = "rtmpv";
+
       $("#movietitle").text(mediaObj.title);
       left_limit = parseFloat(mediaObj.mov.start);
       right_limit = parseFloat(mediaObj.mov.stop);

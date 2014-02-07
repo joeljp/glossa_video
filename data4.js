@@ -5,9 +5,11 @@ var mediaObj = {
 	"end_at":"5",
 	"display_attribute":"ort",
 	"mov":{
-		"supplied":"m4v",
-		"path":"http://tekstlab.uio.no/jplayer/",
-//		"path":"rtmp://stream-prod01.uio.no/vod/mp4:uio/hf/ilf/scandiasyn/",
+//		"supplied":"m4v",
+		"supplied":"rtmpv",
+//		"path":"",
+//		"path":"http://tekstlab.uio.no/jplayer/",
+		"path":"rtmp://stream-prod01.uio.no/vod/mp4:uio/hf/ilf/scandiasyn/",
 		"movie_loc":"aaseral_03gm-04gk_800.mp4", //"drevsjoe_01um-02uk_800.mp4"
 		"start":"386.56",
 		"stop":"410.2"
