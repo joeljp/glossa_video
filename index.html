@@ -1,0 +1,327 @@
+ <!DOCTYPE html
+	  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+  <head>
+    <link type="text/css" href="skin/jplayer.blue.monday.css" rel="stylesheet" /> 
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+    <style>
+
+a {
+  font-family: courier;
+  font-size: .8em;
+}
+a.match{
+  color:#b00;
+  font-weight:bold;
+  font-size:0.9em;
+}
+.autocue{
+  display: table;
+  position:absolute;
+  top:5px;
+  left: 500px;
+  width: 65%;
+  background-color: #fff;
+  border-style:solid;
+  border-width:1px;
+  border-color: #efe;
+}
+.textDiv{
+  display: table-row;
+}
+.slider-range{
+  width:480px;
+
+}
+.speakerDiv{
+  /*
+  border-style:solid;
+  border-width:1px;
+  border-color: #efe;
+  */
+  color:#33c;
+  display: table-cell;
+  width: 50px;
+}
+.segmentDiv{
+  /*
+  border-style:solid;
+  border-width:1px;
+  border-color: #eef;
+  */
+  padding: 3px 15px;
+  display: table-cell;
+}
+div.console
+{
+border:2px solid;
+border-radius:25px;
+}
+    </style>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery.jplayer.min.js"></script>
+    <script type="text/javascript" src="data4.js"></script>
+    <script type="text/javascript" src="jquery/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+
+    $(function() {
+      $( document ).tooltip({
+           content: function () {
+            return $(this).prop('title');
+           }
+      });
+    });
+
+    var supplied = "m4v";
+    //var supplied = "rtmpv";
+
+    $(function() {
+      $( ".method" )
+        .button()
+        .click(function( event ) {
+          event.preventDefault();
+          alert($("#jplayer").jPlayer.supplied);
+          $("#jplayer").jPlayer({supplied:this.id}) ;
+          alert($("#jplayer").jPlayer.supplied);
+        });
+    });
+
+
+    $(document).ready(function(){
+      mov = mediaObj.mov.movie_loc;
+      path = mediaObj.mov.path;
+      $("#movietitle").text(mediaObj.title);
+      left_limit = parseFloat(mediaObj.mov.start);
+      right_limit = parseFloat(mediaObj.mov.stop);
+      last_line = parseInt(mediaObj.last_line);
+      annotation = mediaObj.divs.annotation;
+      display_attribute = mediaObj.display_attribute;
+      start_at_line = parseInt(mediaObj.start_at);
+      end_at_line = parseInt(mediaObj.end_at);
+      start = 0;
+      stop  = 0;
+      next = 0;
+      times = [];
+
+      for(var n in annotation){
+
+        var timecode = annotation[n].from;
+        var end_timecode = annotation[n].to;
+        var speaker = annotation[n].speaker;
+        var speaker_brev = speaker.replace(/^.*_/,"");
+
+
+        var div = $('<div>')
+          .addClass("textDiv")
+          .addClass(timecode.replace(/\./,"_"))
+          .attr("id", n)
+//          .attr("data-timecode",timecode)
+          .data("start_timecode",timecode)
+          .data("end_timecode",end_timecode)
+          .on("click",function(e){alert($(this).data("start_timecode")+" id:"+$(this).attr("id"))});
+
+        if(n<start_at_line || n>end_at_line){
+          div.css({"display":"none"});
+        }
+
+        var speakerDiv = $('<div>')
+          .addClass('speakerDiv');
+
+        var anchor = $('<a>')
+          .addClass('speaker')
+          .text(speaker_brev)
+          .attr("title",speaker);
+
+        speakerDiv.append(anchor);
+
+        var segmentDiv = $("<div>").addClass('segmentDiv');
+
+        times.push(timecode);
+
+        var line = annotation[n].line;
+        var anchor;
+        for(var i in line){
+          var match = false;
+          var att_string = "";
+          if(line[i].match){match = true;}
+          for(var att in line[i]){
+            if(att == "pos"){line[i][att] = line[i][att].replace(/:/g,"/");}
+            att_string += att + " : " + line[i][att] + "<br>";
+          }
+          var anchor = $('<a>')
+            .attr("title",att_string)
+            .text(line[i][display_attribute]);
+          segmentDiv.append(anchor);
+          segmentDiv.append(" ");
+          if(match){
+            anchor
+            .css({"color":"#b00"})
+            .css({"font-weight":"bold"})
+            .css({"font-size":"0.9em"})
+            ;
+          }
+        }
+        div.append(speakerDiv);
+        div.append(segmentDiv);
+        $('#text').append(div);
+      }
+
+      next = times.shift();
+      var lastTime = "0";
+      var i = 0;
+
+      start = parseFloat($("#"+start_at_line).data("start_timecode"));
+      stop  = parseFloat($("#"+end_at_line).data("end_timecode"));
+
+
+      $("#jplayer").jPlayer({
+        solution:"flash, html",
+        ready:
+          function () {
+            $(this).jPlayer("setMedia", {
+                  rtmpv:path + mov,
+                  m4v:path+mov, //,
+//                ogv: "http://www.jplayer.org/video/ogv/Big_Buck_Bunny_Trailer_480x270.ogv",
+                poster: "http://www.hf.uio.no/iln/om/organisasjon/tekstlab/BILDER/_6.6-%27T%27_ligo.skev.graa.jpg"
+            });
+            $(this).jPlayer( "play", start);
+          },
+        timeupdate:
+          function(event){
+            var status = event.jPlayer.status;
+            $("#movietitle").text(status.currentTime + " - " + next);
+            if(status.currentTime > stop){
+              $("#jplayer").jPlayer( "stop" )
+            }
+//            $('#time2').text(status.currentTime+"-"+next+", last: "+lastTime.replace(/\//,"_"));
+            if(status.currentTime >= next){
+//              alert(next);
+              $("#movietitle").text(status.currentTime + " - " + next);
+              $('.'+lastTime.replace(/\./,"_")).css("background-color","#fff");
+              $('.'+next.replace(/\./,"_")).css("background-color","#eea");
+              lastTime = next;
+              next = times.shift();
+            }
+          },
+        swfPath: "js",
+        supplied: supplied,
+        solution: 'html, flash',
+        preload: 'metadata'
+
+//        supplied: "m4v, ogv"
+      });
+
+      $( "#slider-range" ).slider({
+
+        range: true,
+        min: 0,
+        max: last_line,
+        values: [ start_at_line, end_at_line+1 ],
+        slide: function( event, ui ) {
+          if(ui.values[1] - ui.values[0] < 1){
+            return false;
+          } 
+          var first = ui.values[ 0 ];
+          var last = ui.values[ 1 ] - 1;  //eg,  2 - 3 means play 1 segment
+          first_start = $("#"+first).data("start_timecode");
+          next = first_start;
+          last_end = $("#"+last).data("end_timecode");
+          $('#uno').text(first_start) ;
+          $('#duo').text(last_end);
+          $('#trio').text(last_line);
+          for (var i = 0; i <= last_line; i++ ){
+            $("#"+i).css("background-color","#fff");
+            if ( i >= first && i <= last){
+              $("#"+i).css({"display":"table-row","color":"#000"});
+//              $("#"+i).show(400);
+//              $("#"+i).css({"color":"#000"});
+              continue;
+            }
+            if(($("#"+i).data("start_timecode") == first_start) || ($("#"+i).data("end_timecode") == last_end)){ // ie, overlapping segments
+              $("#"+i).css({"display":"table-row","color":"#ccc"});
+//              $("#"+i).show(400);
+//              $("#".i).css({"color":"#ccc"});
+              continue;
+            }
+            $("#"+i).css({"display":"none"});
+ //          $("#"+i).hide(400);
+
+          }
+          start = parseFloat($("#"+first).data("start_timecode"));
+//          stop = parseFloat($("#"+first).data("end_timecode"));
+          stop = parseFloat($("#"+last).data("end_timecode"));
+          $( "#amount" ).text(start + " - " + stop );
+          $( "#amount" ).text(ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+          $("#jplayer").jPlayer("play", start);
+        }
+      });
+
+      $( "#amount" ).val( "$" + $ ( "#slider-range" )
+                    .slider( "values", 0 ) +  " - $" + $( "#slider-range" )
+                    .slider( "values", 1 ) );
+
+  });
+    </script>
+<!-- slider with grabpoint on each side that expands (context) window, as well as grabpoint in middle to move (context) window. And load in lots of json -->
+  </head>
+
+  <body>
+    <span id="uno"></span>
+    <span id="duo"></span>
+    <span id="trio"></span>
+    <div id="jp_container_1" class="jp-video ">
+      <div class="jp-type-single">
+        <div id="jplayer" class="jp-jplayer"></div>
+        <div class="jp-gui">
+          <div class="jp-video-play">
+            <a href="javascript:;" class="jp-video-play-icon" tabindex="1">play</a>
+          </div>
+          <div class="jp-interface">
+            <div class="jp-progress">
+              <div class="jp-seek-bar">
+                <div class="jp-play-bar"></div>
+              </div>
+            </div>
+            <div class="jp-current-time"></div>
+            <div class="jp-duration"></div>
+            <div class="jp-controls-holder">
+              <ul class="jp-controls">
+                <li><a href="javascript:;" class="jp-play" tabindex="1">play</a></li>
+                <li><a href="javascript:;" class="jp-pause" tabindex="1">pause</a></li>
+                <li><a href="javascript:;" class="jp-stop" tabindex="1">stop</a></li>
+                <li><a href="javascript:;" class="jp-mute" tabindex="1" title="mute">mute</a></li>
+                <li><a href="javascript:;" class="jp-unmute" tabindex="1" title="unmute">unmute</a></li>
+                <li><a href="javascript:;" class="jp-volume-max" tabindex="1" title="max volume">max volume</a></li>
+              </ul>
+              <div class="jp-volume-bar">
+                <div class="jp-volume-bar-value"></div>
+              </div>
+              <!--
+              <ul class="jp-toggles">
+                <li><a href="javascript:;" class="jp-full-screen" tabindex="1" title="full screen">full screen</a></li>
+                <li><a href="javascript:;" class="jp-restore-screen" tabindex="1" title="restore screen">restore screen</a></li>
+                <li><a href="javascript:;" class="jp-repeat" tabindex="1" title="repeat">repeat</a></li>
+                <li><a href="javascript:;" class="jp-repeat-off" tabindex="1" title="repeat off">repeat off</a></li>
+              </ul>
+            -->
+            </div>
+            <div class="jp-title">
+              <ul>
+                <li id="movietitle"></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="jp-no-solution">
+          <span>Update Required</span>
+          To play the media you will need to either update your browser to a recent version or update your <a href="http://get.adobe.com/flashplayer/" target="_blank">Flash plugin</a>.
+        </div>
+      </div>
+    </div>
+    <div id="text" class="autocue"></div>
+    <div id="slider-range" class="slider-range"></div>
+    <a href="#" class="method" id="rtpmv">stream</a>
+    <a href="#" class="method" id="m4v">local</a>
+  </body>
+</html>
