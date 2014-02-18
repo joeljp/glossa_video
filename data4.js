@@ -1,7 +1,7 @@
 var mediaObj = {
 	"title":"\u212bseral - 3 & 4",
 	"last_line":"6",
-	"start_at":"3",
+	"start_at":"0",
 	"end_at":"5",
 	"display_attribute":"ort",
 	"mov":{

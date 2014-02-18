@@ -65,33 +65,23 @@ border-radius:25px;
     <script type="text/javascript" src="jquery/jquery-ui.min.js"></script>
     <script type="text/javascript">
 
-    $(function() {
-      $( document ).tooltip({
-           content: function () {
-            return $(this).prop('title');
-           }
-      });
-    });
 
+/* the text box */
+textBox = {
 
-    $(document).ready(function(){
-      mov = mediaObj.mov.movie_loc;
-      path = mediaObj.mov.path;
-      supplied = mediaObj.mov.supplied;
-//      supplied = "m4v";
-    //var supplied = "rtmpv";
+  currentID:0,
+  nextID:0,
+  currentEndTime:0,
+  currentStartTime:0,
+  init:
+    function(mediaObj){
 
-      $("#movietitle").text(mediaObj.title);
-//      left_limit = parseFloat(mediaObj.mov.start);
-//      right_limit = parseFloat(mediaObj.mov.stop);
-      last_line = parseInt(mediaObj.last_line);
-      annotation = mediaObj.divs.annotation;
       display_attribute = mediaObj.display_attribute;
+      annotation = mediaObj.divs.annotation;
       start_at_line = parseInt(mediaObj.start_at);
       end_at_line = parseInt(mediaObj.end_at);
-      start = 0;
-      stop  = 0;
-      next = 0;
+      this.currentID = start_at_line;
+      this.nextID = start_at_line + 1;
 
       for(var n in annotation){
 
@@ -100,62 +90,171 @@ border-radius:25px;
         var speaker = annotation[n].speaker;
         var speaker_brev = speaker.replace(/^.*_/,"");
 
-
         var div = $('<div>')
           .addClass("textDiv")
           .addClass(timecode.replace(/\./,"_"))
           .attr("id", n)
-//          .attr("data-timecode",timecode)
           .data("start_timecode",timecode)
           .data("end_timecode",end_timecode)
-          .on("click",function(e){alert($(this).data("start_timecode")+" id:"+$(this).attr("id"))});
+          .on("click",
+            function(e){alert($(this).data("start_timecode")+" id:"+$(this).attr("id"))});
 
         if(n<start_at_line || n>end_at_line){
           div.css({"display":"none"});
         }
 
         var speakerDiv = $('<div>')
-          .addClass('speakerDiv');
+        .addClass('speakerDiv');
 
         var anchor = $('<a>')
-          .addClass('speaker')
-          .text(speaker_brev)
-          .attr("title",speaker);
+        .addClass('speaker')
+        .text(speaker_brev)
+        .attr("title",speaker);
 
         speakerDiv.append(anchor);
 
-        var segmentDiv = $("<div>").addClass('segmentDiv');
+        var segmentDiv = $("<div>")
+        .addClass('segmentDiv');
 
         var line = annotation[n].line;
-        var anchor;
+
         for(var i in line){
+
           var match = false;
           var att_string = "";
+
           if(line[i].match){match = true;}
+
           for(var att in line[i]){
-            if(att == "pos"){line[i][att] = line[i][att].replace(/:/g,"/");}
+
+            if(att == "pos"){
+              line[i][att] = line[i][att].replace(/:/g,"/"); // pos tags contain multiple values seperated by colons
+            }
             att_string += att + " : " + line[i][att] + "<br>";
           }
-          var anchor = $('<a>')
-            .attr("title",att_string)
-            .text(line[i][display_attribute]);
+
+          anchor = $('<a>')
+          .attr("title",att_string)
+          .text(line[i][display_attribute]);
+
           segmentDiv.append(anchor);
           segmentDiv.append(" ");
+
           if(match){
             anchor
             .css({"color":"#b00"})
             .css({"font-weight":"bold"})
-            .css({"font-size":"0.9em"})
-            ;
+            .css({"font-size":"0.9em"});
           }
         }
+
         div.append(speakerDiv);
         div.append(segmentDiv);
         $('#text').append(div);
       }
+    },
+  redraw:
+    function(first, last){
+      this.currentID = first;
+      this.currentEndTime = 0;
+      first_start = $("#"+first).data("start_timecode");
+      next_line_id = first;
+      next = first_start;
+      last_end = $("#"+last).data("end_timecode");
+      for (var i = 0; i <= last_line; i++ ){
+        $("#"+i).css("background-color","#fff");
+        if ( i >= first && i <= last){
+          $("#"+i).css({"display":"table-row","color":"#000"});
+          //    $("#"+i).show(400);$("#"+i).css({"color":"#000"});
+          continue;
+        }
+        if(($("#"+i).data("start_timecode") == first_start) || ($("#"+i).data("end_timecode") == last_end)){ // ie, overlapping segments
+          $("#"+i).css({"display":"table-row","color":"#ccc"});
+ //         $("#"+i).show(400);$("#".i).css({"color":"#ccc"});
+          continue;
+        }
+        $("#"+i).css({"display":"none"});
+ //          $("#"+i).hide(400);
+      }
 
+    },
+  update:
+    function(ct){
+
+      var iterate = true;
+      console.log("saltana!! "+this.currentID);
+      while(iterate){
+        var currentEndTime = $("#"+this.currentID).data("end_timecode");
+        var currentStartTime = $("#"+this.currentID).data("start_timecode");
+        console.log("update: " + currentStartTime +" " +currentEndTime + " > " + ct +" ?");
+        if(currentEndTime > ct){
+          console.log("yes, replace "+currentStartTime.replace(/\./,"_"));
+          this.currentEndTime = currentEndTime;
+          $("."+currentStartTime.replace(/\./,"_")).css("background-color","#eea");
+          this.currentEndTime = currentEndTime
+          iterate = false;
+        }
+        else{
+          console.log("no");
+          $("."+currentStartTime.replace(/\./,"_")).css("background-color","#fff");
+          this.currentID++;
+        }
+        /*
+        if($("#"+this.nextID).data("start_timecode")>=this.currentEndTime){
+
+          var nextStartTimeCode = $("#"+this.nextID).data("start_timecode");
+
+          if(this.currentStartTime>0){
+            console.log("changing bg for class "+ this.currentStartTime);
+            $('.'+this.currentStartTime.replace(/\./,"_")).css("background-color","#fff");
+          }
+          $('.'+nextStartTimeCode.replace(/\./,"_")).css("background-color","#eea");
+
+          this.currentID = this.nextID;
+          this.currentStartTime = nextStartTimeCode;
+          this.currentEndTime = $("#"+this.nextID).data("end_timecode");
+          iterate = false;
+        }
+
+        else{this.nextID++;}
+*/
+      }
+      this.nextID++;
+      return this.currentEndTime;
+    }
+  };
+$(function() {
+  $( document ).tooltip({
+    content: function () {
+      return $(this).prop('title');
+    }
+  });
+});
+
+
+    $(document).ready(function(){
+      mov = mediaObj.mov.movie_loc;
+      path = mediaObj.mov.path;
+      supplied = mediaObj.mov.supplied;
+
+      $("#movietitle").text(mediaObj.title);
+      last_line = parseInt(mediaObj.last_line);
+
+      textBox.init(mediaObj);
+
+      textBox.currentID = parseInt(mediaObj.start_at);
+
+      console.log("start at line "+ start_at_line);
+
+      textBox.currentID = start_at_line;
+
+      start = 0;
+      stop  = 0;
+      next = 0;
       next_line_id = start_at_line;
+
       next_line_id++;
+      console.log("next line id: " + next_line_id );
       next = $("#"+next_line_id).data("start_timecode");
       var lastTime = "0";
       start = parseFloat($("#"+start_at_line).data("start_timecode"));
@@ -165,40 +264,36 @@ border-radius:25px;
       $("#jplayer").jPlayer({
         solution:"flash, html",
         ready:
-          function () {
-            $(this).jPlayer("setMedia", {
-                  rtmpv:path + mov,
+        function () {
+          $(this).jPlayer("setMedia", {
+            rtmpv:path + mov,
                   m4v:path+mov, //,
 //                ogv: "http://www.jplayer.org/video/ogv/Big_Buck_Bunny_Trailer_480x270.ogv",
-                poster: "http://www.hf.uio.no/iln/om/organisasjon/tekstlab/BILDER/_6.6-%27T%27_ligo.skev.graa.jpg"
-            });
-            $(this).jPlayer( "play", start);
-          },
+poster: "http://www.hf.uio.no/iln/om/organisasjon/tekstlab/BILDER/_6.6-%27T%27_ligo.skev.graa.jpg"
+});
+          $(this).jPlayer( "play", start);
+        },
+
         timeupdate:
-          function(event){
-            var status = event.jPlayer.status;
-//            $("#movietitle").text(status.currentTime + " - " + next);
-            if(status.currentTime > stop){
-              $("#jplayer").jPlayer( "stop" )
-            }
-//            $('#time2').text(status.currentTime+"-"+next+", last: "+lastTime.replace(/\//,"_"));
-            if(status.currentTime >= next){
-//              alert(next);
-//              $("#movietitle").text(status.currentTime + " - " + next);
-              $('.'+lastTime.replace(/\./,"_")).css("background-color","#fff");
-              $('.'+next.replace(/\./,"_")).css("background-color","#eea");
-              lastTime = next;
-              next_line_id++;
-              next = $('#'+next_line_id).data("start_timecode");
-            }
-          },
+        function(event){
+          var ct = event.jPlayer.status.currentTime;
+          if(ct > stop){
+            $("#jplayer").jPlayer( "stop" )
+          }
+          if(ct > textBox.currentEndTime){
+            textBox.update(ct);
+          }
+        },
         swfPath: "js",
         supplied: supplied,
         solution: 'html, flash',
         preload: 'metadata'
 
 //        supplied: "m4v, ogv"
-      });
+});
+
+
+      /* Slider widget */
 
       $( "#slider-range" ).slider({
 
@@ -207,48 +302,25 @@ border-radius:25px;
         max: last_line,
         values: [ start_at_line, end_at_line+1 ],
         slide: function( event, ui ) {
+
           if(ui.values[1] - ui.values[0] < 1){
             return false;
-          } 
+          }
+
           var first = ui.values[ 0 ];
           var last = ui.values[ 1 ] - 1;  //eg,  2 - 3 means play 1 segment
-          first_start = $("#"+first).data("start_timecode");
-          next_line_id = first;
-          next = first_start;
-          last_end = $("#"+last).data("end_timecode");
+          textBox.redraw(first,last);
 
-          for (var i = 0; i <= last_line; i++ ){
-            $("#"+i).css("background-color","#fff");
-            if ( i >= first && i <= last){
-              $("#"+i).css({"display":"table-row","color":"#000"});
-//              $("#"+i).show(400);
-//              $("#"+i).css({"color":"#000"});
-              continue;
-            }
-            if(($("#"+i).data("start_timecode") == first_start) || ($("#"+i).data("end_timecode") == last_end)){ // ie, overlapping segments
-              $("#"+i).css({"display":"table-row","color":"#ccc"});
-//              $("#"+i).show(400);
-//              $("#".i).css({"color":"#ccc"});
-              continue;
-            }
-            $("#"+i).css({"display":"none"});
- //          $("#"+i).hide(400);
-
-          }
           start = parseFloat($("#"+first).data("start_timecode"));
-//          stop = parseFloat($("#"+first).data("end_timecode"));
           stop = parseFloat($("#"+last).data("end_timecode"));
-          $( "#amount" ).text(start + " - " + stop );
-          $( "#amount" ).text(ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+
           $("#jplayer").jPlayer("play", start);
         }
+        /* end of slide function */
+
       });
 
-      $( "#amount" ).val( "$" + $ ( "#slider-range" )
-                    .slider( "values", 0 ) +  " - $" + $( "#slider-range" )
-                    .slider( "values", 1 ) );
-
-  });
+    });
     </script>
 <!-- slider with grabpoint on each side that expands (context) window, as well as grabpoint in middle to move (context) window. And load in lots of json -->
   </head>
@@ -262,18 +334,24 @@ border-radius:25px;
             <a href="javascript:;" class="jp-video-play-icon" tabindex="1">play</a>
           </div>
           <div class="jp-interface">
+            <!--
             <div class="jp-progress">
               <div class="jp-seek-bar">
                 <div class="jp-play-bar"></div>
               </div>
             </div>
+          
             <div class="jp-current-time"></div>
             <div class="jp-duration"></div>
+            -->
+            <div>&nbsp;</div>
             <div class="jp-controls-holder">
               <ul class="jp-controls">
                 <li><a href="javascript:;" class="jp-play" tabindex="1">play</a></li>
                 <li><a href="javascript:;" class="jp-pause" tabindex="1">pause</a></li>
+                <!--
                 <li><a href="javascript:;" class="jp-stop" tabindex="1">stop</a></li>
+                -->
                 <li><a href="javascript:;" class="jp-mute" tabindex="1" title="mute">mute</a></li>
                 <li><a href="javascript:;" class="jp-unmute" tabindex="1" title="unmute">unmute</a></li>
                 <li><a href="javascript:;" class="jp-volume-max" tabindex="1" title="max volume">max volume</a></li>
